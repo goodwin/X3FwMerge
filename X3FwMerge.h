@@ -2,7 +2,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <string.h>
-
+#include <unistd.h>
 #include <sys/stat.h>
 
 #define LINUX
@@ -13,7 +13,7 @@
 #define SECTOR_HEADER_SIZE 64
 
 #define INPUT_ROOT_FOLDER "InputX3"
-#define FOLDER_PERMISSION (S_IRWXU | S_IRWXG | S_IRWXO))
+#define FILE_PERMISSION (S_IRWXU | S_IRWXG | S_IRWXO))
 
 typedef struct {
   char StartSignature[4] ;
@@ -36,6 +36,6 @@ typedef struct {
 
 int Folder2Img (char *InputFolderPath, char *OutputFilePath) ;
 
-int FolderTraveler (char *SourceFolderName) ;
+int FolderTraveler (char *SourceFolderPath) ;
 
 
