@@ -36,4 +36,6 @@ typedef struct {
 
 int Folder2Img (char *InputFolderPath, char *OutputFilePath) ;
 
+int FolderTraveler (char *SourceFolderName) ;
+
 
