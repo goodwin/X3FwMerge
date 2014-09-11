@@ -16,6 +16,13 @@
 #define FILE_PERMISSION (S_IRWXU | S_IRWXG | S_IRWXO))
 
 typedef struct {
+  unsigned int Index ;
+  char *FilePath;
+  unsigned int FileSize;
+  void *NextFile;
+} FileList ;
+
+typedef struct {
   char StartSignature[4] ;
   unsigned int SectorAmount;
   unsigned int Unknown1;
