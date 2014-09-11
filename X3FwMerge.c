@@ -7,6 +7,18 @@ char CurrentPath[1024] = {0} ;
 int FileCounter = 0;
 FileList *InputFileList = NULL;
 
+/* Header */
+FileHeader *OutputFileHeader = NULL;
+
+/* Sector Table */
+SectorHeader *OutputSectorHeader = NULL;
+
+/* File image */
+void *OutputFileImg = NULL;
+
+/* Merge */
+void *OutputFile = NULL;
+
 int Folder2Img (char *InputFolderPath, char *OutputFilePath) 
 {
   int Res = 0;
@@ -32,6 +44,7 @@ int FolderTraveler (char *SourceFolderPath)
   int Res = 0;
   int Index = 0;
   char ParentPath[1024] = {0} ;
+  char FilePath[1024] = {0} ;
   DIR *SourceFolder = NULL;
   
   struct dirent *SubFolder = NULL;
@@ -66,7 +79,10 @@ int FolderTraveler (char *SourceFolderPath)
 	  /*
 	    Write datas to list
 	  */
-	  printf ("%s->%s\n", CurrentPath, SubFolder->d_name) ;
+	  strcat (FilePath, CurrentPath) ;
+	  strcat (FilePath, SubFolder->d_name) ;
+	  AddFileList (FilePath) ;
+	  memset (FilePath, 0, 1024) ;
 	  FileCounter ++;
 	}
 	
@@ -87,7 +103,9 @@ int FolderTraveler (char *SourceFolderPath)
 int AddFileList (char *FilePath) 
 {
   int Res = 0;
-
+  FILE *F = NULL;
+  printf ("File : %s\n", FilePath) ;
+  F = fopen (FilePath, "wb") ;
   if (InputFileList == NULL) {
     /*
       Create List head

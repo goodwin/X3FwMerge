@@ -18,6 +18,7 @@
 typedef struct {
   unsigned int Index ;
   char *FilePath;
+  char IhfsFilePath[56];
   unsigned int FileSize;
   void *NextFile;
 } FileList ;
