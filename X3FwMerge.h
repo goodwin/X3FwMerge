@@ -17,10 +17,10 @@
 
 typedef struct {
   unsigned int Index ;
+  unsigned int FileSize;
   char *FilePath;
   char IhfsFilePath[56];
-  unsigned int FileSize;
-  void *NextFile;
+  void *Next;
 } FileList ;
 
 typedef struct {
@@ -45,5 +45,5 @@ typedef struct {
 int Folder2Img (char *InputFolderPath, char *OutputFilePath) ;
 
 int FolderTraveler (char *SourceFolderPath) ;
-
+int ListTraveler (FileList *IhfsFileList) ;
 

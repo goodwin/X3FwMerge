@@ -4,8 +4,11 @@
 #include "X3FwMerge.h"
 
 char CurrentPath[1024] = {0} ;
+char *RootFolder = NULL;
 int FileCounter = 0;
-FileList *InputFileList = NULL;
+
+/* IHFS File list */
+FileList *OutputFileList = NULL;
 
 /* Header */
 FileHeader *OutputFileHeader = NULL;
@@ -23,7 +26,8 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
 {
   int Res = 0;
 
-  
+  RootFolder = malloc (strlen (InputFolderPath) + 1) ;
+  strcpy (RootFolder, InputFolderPath) ;
   /*
     1. Travel directories and files
     2. After fount a entry type is file, add path to file list
@@ -32,8 +36,17 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
   strcat (CurrentPath, InputFolderPath) ;
   printf ("Enter [%s]\n", CurrentPath) ;
   Res = FolderTraveler (InputFolderPath) ;  /*Start from the root folder */
-  printf ("File : %d\n", FileCounter) ;
+  printf ("File counts : %d\n", FileCounter) ;
 
+
+
+  /*
+    1. Travel ihfs file list
+    2. Create file image in memory
+  */
+  ListTraveler (OutputFileList) ;
+  
+  free (RootFolder) ;
   
   return 0;
 }
@@ -63,14 +76,14 @@ int FolderTraveler (char *SourceFolderPath)
 	  /*
 	    Open nest folder
 	  */
-	  //printf ("-- %s --\n", SubFolder->d_name) ;
-
 	  strcpy (ParentPath, CurrentPath) ;
 	  strcat (CurrentPath, "/") ;
 	  strcat (CurrentPath, SubFolder->d_name) ;
-	  //Res = chdir (CurrentPath) ;
 	  FolderTraveler (CurrentPath) ;
-	  //Res = chdir ("..") ;
+
+	  /*
+	    Resume parent folder path
+	  */
 	  for (Index = 0; Index < 1024; Index++)
 	    *(CurrentPath + Index) = *(ParentPath + Index) ;
 	  
@@ -80,6 +93,7 @@ int FolderTraveler (char *SourceFolderPath)
 	    Write datas to list
 	  */
 	  strcat (FilePath, CurrentPath) ;
+	  strcat (FilePath, "/") ;
 	  strcat (FilePath, SubFolder->d_name) ;
 	  AddFileList (FilePath) ;
 	  memset (FilePath, 0, 1024) ;
@@ -103,17 +117,63 @@ int FolderTraveler (char *SourceFolderPath)
 int AddFileList (char *FilePath) 
 {
   int Res = 0;
-  FILE *F = NULL;
-  printf ("File : %s\n", FilePath) ;
-  F = fopen (FilePath, "wb") ;
-  if (InputFileList == NULL) {
+  static FileList *CurrentListNode = NULL;
+  char *TempPath = NULL;
+  FILE *FileNode = NULL;
+
+  /*
+    List node operation
+  */
+  if (OutputFileList == NULL) {
     /*
       Create List head
     */
+    OutputFileList = malloc (sizeof (FileList) ) ;
+    CurrentListNode = OutputFileList;
   } else {
     /*
-      Add new file node to list
+      Create new list node
     */
+    CurrentListNode->Next = malloc (sizeof (FileList) ) ;
+    CurrentListNode = (FileList *) CurrentListNode->Next;
   }
+
+  /*
+    Fill node data
+  */
+  CurrentListNode->Index = FileCounter ;
+
+  
+  CurrentListNode->FilePath = malloc (strlen (FilePath) + 1 ) ;
+  strcpy (CurrentListNode->FilePath, FilePath) ;
+
+  
+  FileNode = fopen (FilePath, "rb") ;
+  fseek (FileNode, 0, SEEK_END) ;
+  CurrentListNode->FileSize = ftell (FileNode) ;
+  fclose (FileNode) ;
+
+  
+  TempPath = (FilePath + strlen (RootFolder) + 1 ) ;
+  strcpy (CurrentListNode->IhfsFilePath, TempPath) ;
+  
+
+  
   return 0; /* success */
 }
+
+int ListTraveler (FileList *IhfsFileList) 
+{
+  FileList *FileListPtr = IhfsFileList;
+  
+  if (IhfsFileList == NULL) {
+    return -1;
+  } else {
+    while (FileListPtr != NULL) {
+      printf ("%4d, path = %s\n", FileListPtr->Index, FileListPtr->IhfsFilePath) ;
+      FileListPtr = (FileList *) FileListPtr->Next;
+    }
+  }
+  return 0;
+}
+
