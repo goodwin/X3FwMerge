@@ -5,7 +5,9 @@
 
 char CurrentPath[1024] = {0} ;
 char *RootFolder = NULL;
-int FileCounter = 0;
+unsigned long FileTotalSize = 0;
+unsigned int FileCounter = 0;
+unsigned long UsedMemory = 0;
 
 /* IHFS File list */
 FileList *OutputFileList = NULL;
@@ -34,9 +36,11 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
   */
   
   strcat (CurrentPath, InputFolderPath) ;
-  printf ("Enter [%s]\n", CurrentPath) ;
+  printf ("Root folder : %s\n", CurrentPath) ;
   Res = FolderTraveler (InputFolderPath) ;  /*Start from the root folder */
+  printf ("-- Foder travel done. --\n") ;
   printf ("File counts : %d\n", FileCounter) ;
+  printf ("File Size   : %d\n", FileTotalSize) ;
 
 
 
@@ -45,6 +49,7 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
     2. Create file image in memory
   */
   ListTraveler (OutputFileList) ;
+
   
   free (RootFolder) ;
   
@@ -98,8 +103,7 @@ int FolderTraveler (char *SourceFolderPath)
 	  AddFileList (FilePath) ;
 	  memset (FilePath, 0, 1024) ;
 	  FileCounter ++;
-	}
-	
+	}	
       }
       /*
 	Next entry
@@ -117,6 +121,7 @@ int FolderTraveler (char *SourceFolderPath)
 int AddFileList (char *FilePath) 
 {
   int Res = 0;
+  int Index = 0;
   static FileList *CurrentListNode = NULL;
   char *TempPath = NULL;
   FILE *FileNode = NULL;
@@ -143,34 +148,67 @@ int AddFileList (char *FilePath)
   */
   CurrentListNode->Index = FileCounter ;
 
-  
+  /*
+    Fill node FilePath
+  */
   CurrentListNode->FilePath = malloc (strlen (FilePath) + 1 ) ;
   strcpy (CurrentListNode->FilePath, FilePath) ;
 
-  
+  /*
+    Fill node file size
+  */
   FileNode = fopen (FilePath, "rb") ;
   fseek (FileNode, 0, SEEK_END) ;
   CurrentListNode->FileSize = ftell (FileNode) ;
+  FileTotalSize += CurrentListNode->FileSize ;
   fclose (FileNode) ;
 
   
   TempPath = (FilePath + strlen (RootFolder) + 1 ) ;
+  for (Index = 0; Index < strlen (TempPath); Index++) {
+    if (*(TempPath + Index) == '/') *(TempPath + Index) = '\\';
+  }
   strcpy (CurrentListNode->IhfsFilePath, TempPath) ;
   
 
-  
   return 0; /* success */
 }
 
 int ListTraveler (FileList *IhfsFileList) 
 {
+  int Res = 0;
+  FILE *ReadBuffer = NULL;
   FileList *FileListPtr = IhfsFileList;
   
-  if (IhfsFileList == NULL) {
+  /*
+    Check Ihfs list valid
+  */
+  if (FileListPtr == NULL) {
+    printf ("File list invalid.\n") ;
     return -1;
   } else {
+    /*
+      Start travel list
+    */
     while (FileListPtr != NULL) {
-      printf ("%4d, path = %s\n", FileListPtr->Index, FileListPtr->IhfsFilePath) ;
+
+      /*
+	Duplicate to raw image
+      */
+      UsedMemory += FileListPtr->FileSize;
+      OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
+      printf ("%4d-> %30s : %08p : Used : %d\n", FileListPtr->Index,FileListPtr->IhfsFilePath, OutputFileImg, UsedMemory) ;
+
+      /*
+	Create sector table node
+      */
+
+
+
+      
+      /*
+	Move to next node
+      */
       FileListPtr = (FileList *) FileListPtr->Next;
     }
   }

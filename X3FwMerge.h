@@ -12,12 +12,16 @@
 #define FILE_HEADER_SIZE 512 
 #define SECTOR_HEADER_SIZE 64
 
+#define SECTOR_TABLE_OFFSET 4 /*Sector Table starts at sector 4 */
+#define RAW_DATA_OFFSET 260 /* Raw data starts at sector 260 */
+
 #define INPUT_ROOT_FOLDER "InputX3"
 #define FILE_PERMISSION (S_IRWXU | S_IRWXG | S_IRWXO))
 
 typedef struct {
   unsigned int Index ;
   unsigned int FileSize;
+  unsigned int SectorIndex;
   char *FilePath;
   char IhfsFilePath[56];
   void *Next;
