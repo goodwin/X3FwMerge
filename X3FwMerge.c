@@ -177,6 +177,7 @@ int AddFileList (char *FilePath)
 int ListTraveler (FileList *IhfsFileList) 
 {
   int Res = 0;
+  unsigned int TempSectorAddress = 0;
   FILE *ReadBuffer = NULL;
   FileList *FileListPtr = IhfsFileList;
   
@@ -195,9 +196,35 @@ int ListTraveler (FileList *IhfsFileList)
       /*
 	Duplicate to raw image
       */
-      UsedMemory += FileListPtr->FileSize;
-      OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
-      printf ("%4d-> %30s : %08p : Used : %d\n", FileListPtr->Index,FileListPtr->IhfsFilePath, OutputFileImg, UsedMemory) ;
+      ReadBuffer = fopen (FileListPtr->FilePath, "rb") ;
+      if (ReadBuffer != NULL) {
+	OutputFileImg = realloc (OutputFileImg, UsedMemory + FileListPtr->FileSize) ;
+	
+	TempSectorAddress = (UsedMemory / SECTOR_SIZE) + RAW_DATA_OFFSET; //
+	
+	Res = fread ((OutputFileImg + UsedMemory),
+		     1,
+		     FileListPtr->FileSize,
+		     ReadBuffer) ;
+	printf ("Duplicate %d byte to raw, size %d\n", Res, FileListPtr->FileSize) ;
+	Res = fclose (ReadBuffer) ;
+	UsedMemory += FileListPtr->FileSize;
+
+	/*
+	  Sector size alignment
+	*/
+	if ( (UsedMemory % SECTOR_SIZE) != 0) {
+	  UsedMemory += (UsedMemory % SECTOR_SIZE) ;
+	  OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
+	}
+      } else {
+	printf ("List End!\n") ;
+	return -1;
+      }
+      printf ("%4d-> %30s : Used : %d\n",
+	      FileListPtr->Index,
+	      FileListPtr->IhfsFilePath,
+	      UsedMemory ) ;
 
       /*
 	Create sector table node
