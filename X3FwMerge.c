@@ -199,32 +199,42 @@ int ListTraveler (FileList *IhfsFileList)
       ReadBuffer = fopen (FileListPtr->FilePath, "rb") ;
       if (ReadBuffer != NULL) {
 	OutputFileImg = realloc (OutputFileImg, UsedMemory + FileListPtr->FileSize) ;
-	
-	TempSectorAddress = (UsedMemory / SECTOR_SIZE) + RAW_DATA_OFFSET; //
-	
+
+	printf ("Index:%d - %s - WriteTo:%d\n",
+		FileListPtr->Index,
+		FileListPtr->FilePath,
+		UsedMemory) ;
+	if ((UsedMemory % SECTOR_SIZE) == 0) {
+	  TempSectorAddress = (UsedMemory / SECTOR_SIZE) + RAW_DATA_OFFSET; //
+	} else {
+	  printf ("Sector alignment fail (index:%d->mod:%d)\n", FileListPtr->Index, UsedMemory%SECTOR_SIZE) ;
+	  return -1;
+	}
+
 	Res = fread ((OutputFileImg + UsedMemory),
 		     1,
 		     FileListPtr->FileSize,
 		     ReadBuffer) ;
-	printf ("Duplicate %d byte to raw, size %d\n", Res, FileListPtr->FileSize) ;
+	printf ("Duplicate %d bytes,  ", Res) ;
+	
 	Res = fclose (ReadBuffer) ;
 	UsedMemory += FileListPtr->FileSize;
+	printf ("Next start %d \n", UsedMemory) ;
 
 	/*
 	  Sector size alignment
 	*/
 	if ( (UsedMemory % SECTOR_SIZE) != 0) {
-	  UsedMemory += (UsedMemory % SECTOR_SIZE) ;
+	  printf ("%d(%d)->", UsedMemory, UsedMemory % 512) ;
+	  UsedMemory = ((UsedMemory / SECTOR_SIZE) + 1) * SECTOR_SIZE ;
+	  printf ("%d\n", UsedMemory) ;
 	  OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
 	}
+	
       } else {
 	printf ("List End!\n") ;
 	return -1;
       }
-      printf ("%4d-> %30s : Used : %d\n",
-	      FileListPtr->Index,
-	      FileListPtr->IhfsFilePath,
-	      UsedMemory ) ;
 
       /*
 	Create sector table node
