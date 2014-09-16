@@ -28,7 +28,7 @@ typedef struct {
 } FileList ;
 
 typedef struct {
-  char StartSignature[4] ;
+  unsigned int StartSignature ;
   unsigned int SectorAmount;
   unsigned int Unknown1;
   unsigned int Unknown2;
@@ -50,4 +50,5 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath) ;
 
 int FolderTraveler (char *SourceFolderPath) ;
 int ListTraveler (FileList *IhfsFileList) ;
+int CreateFileHeader (void ) ;
 

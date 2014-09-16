@@ -53,6 +53,11 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
   //fo = fopen ("table", "wb") ;
   //fwrite (OutputSectorHeader, 1, FileCounter * 64, fo) ;
   //fclose (fo) ;
+
+  /*
+    Create file header info
+  */
+  CreateFileHeader () ;
   
   free (RootFolder) ;
   
@@ -245,7 +250,7 @@ int ListTraveler (FileList *IhfsFileList)
       */
       OutputSectorHeader = realloc (OutputSectorHeader,
 				    (FileListPtr->Index + 1) * SECTOR_HEADER_SIZE) ;
-      printf ("Index:%d - Allocate:%d bytes\n", FileListPtr->Index, (FileListPtr->Index + 1)*64 ) ;
+      //printf ("Index:%d - Allocate:%d bytes\n", FileListPtr->Index, (FileListPtr->Index + 1)*64 ) ;
       TempSectorHeader = malloc (sizeof (SectorHeader)) ;
       if (TempSectorHeader != NULL) {
 	TempSectorHeader->SectorIndex = TempSectorAddress;
@@ -260,7 +265,7 @@ int ListTraveler (FileList *IhfsFileList)
 	memcpy ((OutputSectorHeader + (FileListPtr->Index)), /* 1 offset = 64 bytes */
         	TempSectorHeader,
 		SECTOR_HEADER_SIZE) ;
-	printf ("%s - \n", (OutputSectorHeader + FileListPtr->Index) ) ;	
+	//printf ("%s - \n", (OutputSectorHeader + FileListPtr->Index) ) ;	
 	free (TempSectorHeader) ;
       } else {
 	printf ("Create sector header fail.\n") ;
@@ -278,3 +283,23 @@ int ListTraveler (FileList *IhfsFileList)
   return 0;
 }
 
+int CreateFileHeader (void )
+{
+  const char *LocalTimeStamp = "201409161234";
+  OutputFileHeader = malloc (sizeof (FileHeader) ) ;
+  if (OutputFileHeader != NULL) {
+    OutputFileHeader->StartSignature = 0x49484653;
+    OutputFileHeader->SectorAmount   = 0x07F00000; /*  */
+    OutputFileHeader->Unknown1       = 0x00000004;
+    OutputFileHeader->Unknown2       = 0x00000000;
+    OutputFileHeader->FileAmount     = FileCounter;
+    OutputFileHeader->FwVersion[0]   = 0x02;
+    OutputFileHeader->FwModule[0]    = 'x';
+    OutputFileHeader->FwModule[1]    = '3';
+    OutputFileHeader->EndSignature   = 0x55AA55AA;
+  } else {
+    printf ("Fail!\n") ;
+    return -1;
+  }
+  return 0;
+}
