@@ -27,7 +27,7 @@ void *OutputFile = NULL;
 int Folder2Img (char *InputFolderPath, char *OutputFilePath) 
 {
   int Res = 0;
-
+  FILE *fo = NULL;
   RootFolder = malloc (strlen (InputFolderPath) + 1) ;
   strcpy (RootFolder, InputFolderPath) ;
   /*
@@ -50,6 +50,9 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
   */
   ListTraveler (OutputFileList) ;
 
+  //fo = fopen ("table", "wb") ;
+  //fwrite (OutputSectorHeader, 1, FileCounter * 64, fo) ;
+  //fclose (fo) ;
   
   free (RootFolder) ;
   
@@ -180,6 +183,7 @@ int ListTraveler (FileList *IhfsFileList)
   unsigned int TempSectorAddress = 0;
   FILE *ReadBuffer = NULL;
   FileList *FileListPtr = IhfsFileList;
+  SectorHeader *TempSectorHeader = NULL;
   
   /*
     Check Ihfs list valid
@@ -200,10 +204,10 @@ int ListTraveler (FileList *IhfsFileList)
       if (ReadBuffer != NULL) {
 	OutputFileImg = realloc (OutputFileImg, UsedMemory + FileListPtr->FileSize) ;
 
-	printf ("Index:%d - %s - WriteTo:%d\n",
-		FileListPtr->Index,
-		FileListPtr->FilePath,
-		UsedMemory) ;
+	//	printf ("Index:%d - %s - WriteTo:%d\n",
+	//	FileListPtr->Index,
+	//	FileListPtr->FilePath,
+	//	UsedMemory) ;
 	if ((UsedMemory % SECTOR_SIZE) == 0) {
 	  TempSectorAddress = (UsedMemory / SECTOR_SIZE) + RAW_DATA_OFFSET; //
 	} else {
@@ -215,19 +219,19 @@ int ListTraveler (FileList *IhfsFileList)
 		     1,
 		     FileListPtr->FileSize,
 		     ReadBuffer) ;
-	printf ("Duplicate %d bytes,  ", Res) ;
+	//printf ("Duplicate %d bytes,  ", Res) ;
 	
 	Res = fclose (ReadBuffer) ;
 	UsedMemory += FileListPtr->FileSize;
-	printf ("Next start %d \n", UsedMemory) ;
+	//printf ("Next start %d \n", UsedMemory) ;
 
 	/*
 	  Sector size alignment
 	*/
 	if ( (UsedMemory % SECTOR_SIZE) != 0) {
-	  printf ("%d(%d)->", UsedMemory, UsedMemory % 512) ;
+	  //printf ("%d(%d)->", UsedMemory, UsedMemory % 512) ;
 	  UsedMemory = ((UsedMemory / SECTOR_SIZE) + 1) * SECTOR_SIZE ;
-	  printf ("%d\n", UsedMemory) ;
+	  //printf ("%d\n", UsedMemory) ;
 	  OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
 	}
 	
@@ -239,8 +243,30 @@ int ListTraveler (FileList *IhfsFileList)
       /*
 	Create sector table node
       */
+      OutputSectorHeader = realloc (OutputSectorHeader,
+				    (FileListPtr->Index + 1) * SECTOR_HEADER_SIZE) ;
+      printf ("Index:%d - Allocate:%d bytes\n", FileListPtr->Index, (FileListPtr->Index + 1)*64 ) ;
+      TempSectorHeader = malloc (sizeof (SectorHeader)) ;
+      if (TempSectorHeader != NULL) {
+	TempSectorHeader->SectorIndex = TempSectorAddress;
+	TempSectorHeader->FileSize = FileListPtr->FileSize;
+	
+	if (strlen (FileListPtr->IhfsFilePath) >= 56) {
+	  printf ("!!!\n") ;
+	  return -1;
+	}
+	strcpy (TempSectorHeader->FilePath, FileListPtr->IhfsFilePath) ;
 
-
+	memcpy ((OutputSectorHeader + (FileListPtr->Index)), /* 1 offset = 64 bytes */
+        	TempSectorHeader,
+		SECTOR_HEADER_SIZE) ;
+	printf ("%s - \n", (OutputSectorHeader + FileListPtr->Index) ) ;	
+	free (TempSectorHeader) ;
+      } else {
+	printf ("Create sector header fail.\n") ;
+	return -1;
+      }
+      
 
       
       /*
