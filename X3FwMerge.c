@@ -38,7 +38,7 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
   strcat (CurrentPath, InputFolderPath) ;
   printf ("Root folder : %s\n", CurrentPath) ;
   Res = FolderTraveler (InputFolderPath) ;  /*Start from the root folder */
-  printf ("-- Foder travel done. --\n") ;
+  printf ("-- Folder travel done. --\n") ;
   printf ("File counts : %d\n", FileCounter) ;
   printf ("File Size   : %d\n", FileTotalSize) ;
 
@@ -58,7 +58,15 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath)
     Create file header info
   */
   CreateFileHeader () ;
-  
+
+
+  /*
+    1. Merge 3 parts
+    2. Write fw file
+  */
+  CreateFile () ;
+
+
   free (RootFolder) ;
   
   return 0;
@@ -239,7 +247,7 @@ int ListTraveler (FileList *IhfsFileList)
 	  //printf ("%d\n", UsedMemory) ;
 	  OutputFileImg = realloc (OutputFileImg, UsedMemory) ;
 	}
-	
+	FileTotalSize = UsedMemory;
       } else {
 	printf ("List End!\n") ;
 	return -1;
@@ -286,6 +294,9 @@ int ListTraveler (FileList *IhfsFileList)
 int CreateFileHeader (void )
 {
   const char *LocalTimeStamp = "201409161234";
+  int Index = 0;
+
+  
   OutputFileHeader = malloc (sizeof (FileHeader) ) ;
   if (OutputFileHeader != NULL) {
     OutputFileHeader->StartSignature = 0x49484653;
@@ -297,9 +308,78 @@ int CreateFileHeader (void )
     OutputFileHeader->FwModule[0]    = 'x';
     OutputFileHeader->FwModule[1]    = '3';
     OutputFileHeader->EndSignature   = 0x55AA55AA;
+
+
+    for (Index = 1; Index < 0x10; Index ++) {
+      OutputFileHeader->FwVersion[Index] = 0;
+    }
+    for (Index = 2; Index < 0x10; Index ++) {
+      OutputFileHeader->FwModule[Index] = 0;
+    }
+    for (Index = 0; Index < 1536; Index++) {
+      OutputFileHeader->Filter[Index] = 0;
+    }
+    for (Index = 0; Index < 444; Index++) {
+      OutputFileHeader->Zeros[Index] = 0;
+    }
+    
+
+    
+    memcpy (OutputFileHeader->TimeStamp, LocalTimeStamp, 12) ;
   } else {
     printf ("Fail!\n") ;
     return -1;
   }
+  return 0;
+}
+
+int CreateFile (void ) 
+{
+  int Res = 0;
+  FILE *fo = NULL;
+
+  fo = fopen ("x3out.fw", "wb") ;
+  if (fo != NULL) {
+    printf ("Create output fw file success\n") ;
+
+    /*
+      Duplicate header info
+    */
+    printf ("Duplicate header info...") ;
+    Res = fwrite (OutputFileHeader, sizeof (FileHeader), 1, fo) ;
+    if (Res != -1) {
+      printf ("ok! - %d\n", ftell (fo) ) ;
+    }
+
+    /*
+      Duplicate sector table
+    */
+    printf ("Duplicate sector table...") ;
+    Res = fwrite (OutputSectorHeader, sizeof (SectorHeader), FileCounter, fo) ;
+    if (Res != -1) {
+      printf ("ok! - %d\n", ftell (fo) ) ;
+    }
+
+
+    /*
+      Duplicate file img
+    */
+    printf ("Duplicate file img...") ;
+    Res = fseek (fo, RAW_DATA_OFFSET * SECTOR_SIZE, SEEK_SET) ;
+    Res = fwrite (OutputFileImg, 1, FileTotalSize, fo) ;
+    if (Res != -1) {
+      printf ("ok! - %d\n", ftell (fo) ) ;
+    }
+    fclose (fo) ;
+    
+  } else {
+    printf ("Create output fw file fail\n") ;
+    perror ("x3") ;
+    return -1;
+  }
+  
+  
+
+  
   return 0;
 }

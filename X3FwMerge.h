@@ -38,6 +38,7 @@ typedef struct {
   char FwModule[0x10];
   char Zeros[444];
   unsigned int EndSignature;
+  char Filter [1536];
 } FileHeader ;
 
 typedef struct {
@@ -51,4 +52,5 @@ int Folder2Img (char *InputFolderPath, char *OutputFilePath) ;
 int FolderTraveler (char *SourceFolderPath) ;
 int ListTraveler (FileList *IhfsFileList) ;
 int CreateFileHeader (void ) ;
+int CreateFile (void ) ;
 
