@@ -157,6 +157,7 @@ int AddFileList (char *FilePath)
     */
     CurrentListNode->Next = malloc (sizeof (FileList) ) ;
     CurrentListNode = (FileList *) CurrentListNode->Next;
+    CurrentListNode->Next = NULL;
   }
 
   /*
@@ -167,13 +168,14 @@ int AddFileList (char *FilePath)
   /*
     Fill node FilePath
   */
+  printf ("Add:%s to list\n", FilePath) ;
   CurrentListNode->FilePath = malloc (strlen (FilePath) + 1 ) ;
   strcpy (CurrentListNode->FilePath, FilePath) ;
 
   /*
     Fill node file size
   */
-  FileNode = fopen (FilePath, "rb") ;
+  FileNode = fopen (FilePath, "r") ;
   fseek (FileNode, 0, SEEK_END) ;
   CurrentListNode->FileSize = ftell (FileNode) ;
   FileTotalSize += CurrentListNode->FileSize ;
@@ -208,24 +210,25 @@ int ListTraveler (FileList *IhfsFileList)
     /*
       Start travel list
     */
+    OutputSectorHeader = malloc (2048 * SECTOR_HEADER_SIZE) ;
+    memset (OutputSectorHeader, 0, 2048 * SECTOR_HEADER_SIZE) ;
     while (FileListPtr != NULL) {
-      printf ("\n") ;
+      printf ("#\n") ;
 
       /*
-	Duplicate to raw image
+	Duplicate to raw image *bug
       */
+      printf ("open:%p\n", FileListPtr) ;
       ReadBuffer = fopen (FileListPtr->FilePath, "rb") ;
       if (ReadBuffer != NULL) {
+	printf ("Start @ %d \n", UsedMemory) ;
 	OutputFileImg = realloc (OutputFileImg, UsedMemory + FileListPtr->FileSize) ;
+	memset ((OutputFileImg + UsedMemory), 0, FileListPtr->FileSize) ;
 
-	//printf ("%04d:%s - WriteTo:%d\n",
-	//FileListPtr->Index,
-	//FileListPtr->FilePath,
-	//UsedMemory) ;
 	if ((UsedMemory % SECTOR_SIZE) == 0) {
 	  TempSectorAddress = (UsedMemory / SECTOR_SIZE) + RAW_DATA_OFFSET; //
 	} else {
-	  printf ("Sector alignment fail (index:%d->mod:%d)\n", FileListPtr->Index, UsedMemory%SECTOR_SIZE) ;
+	  printf ("Sector alignment fail (index:%d->mod:%d)\n", FileListPtr->Index, UsedMemory % SECTOR_SIZE) ;
 	  return -1;
 	}
 ;
@@ -257,19 +260,17 @@ int ListTraveler (FileList *IhfsFileList)
       /*
 	Create sector table node
       */
-      OutputSectorHeader = realloc (OutputSectorHeader,
-      				    (FileListPtr->Index + 1) * SECTOR_HEADER_SIZE) ;
-      //printf ("Index:%d - Allocate:%d bytes\n", FileListPtr->Index, (FileListPtr->Index + 1)*64 ) ;
+      //OutputSectorHeader = realloc (OutputSectorHeader,
+      //				    (FileListPtr->Index + 1) * SECTOR_HEADER_SIZE) ;
+      // OutputSectorHeader = malloc (2048 * SECTOR_HEADER_SIZE) ;
+      //memset (OutputSectorHeader, 0, 2048 * SECTOR_HEADER_SIZE) ;
+      printf ("Index:%d - Allocate:%d bytes\n", FileListPtr->Index, (FileListPtr->Index + 1)*64 ) ;
       TempSectorHeader = malloc (sizeof (SectorHeader)) ;
+      memset (TempSectorHeader, 0, sizeof (SectorHeader) ) ;
       if (TempSectorHeader != NULL) {
 	TempSectorHeader->SectorIndex = TempSectorAddress;
 	TempSectorHeader->FileSize = FileListPtr->FileSize;
-	
-	if (strlen (FileListPtr->IhfsFilePath) >= 56) {
-	  printf ("!!!\n") ;
-	  return -1;
-	}
-	
+ 
 	strcpy (TempSectorHeader->FilePath, FileListPtr->IhfsFilePath) ;
 
 	memcpy ((OutputSectorHeader + (FileListPtr->Index)), /* 1 offset = 64 bytes */
@@ -287,7 +288,8 @@ int ListTraveler (FileList *IhfsFileList)
 	Move to next node
       */
       printf ("\n") ;
-      FileListPtr = (FileList *) FileListPtr->Next;
+
+      FileListPtr = FileListPtr->Next;
     }
   }
   return 0;
@@ -326,7 +328,6 @@ int CreateFileHeader (void )
     }
     
 
-    
     memcpy (OutputFileHeader->TimeStamp, LocalTimeStamp, 12) ;
   } else {
     printf ("Fail!\n") ;
@@ -340,7 +341,7 @@ int CreateFile (void )
   int Res = 0;
   int Temp = 0;
   int Index = 0;
-  unsigned char Zero = 0xff;
+  unsigned char Zero = 0x00;
   FILE *fo = NULL;
   
 
@@ -373,12 +374,13 @@ int CreateFile (void )
     printf ("Duplicate file img...") ;
     Temp = (RAW_DATA_OFFSET * SECTOR_SIZE) - Res;
     for (Index = 0; Index < Temp; Index++) {
-      printf (".") ;
+      
       Res = fwrite (&Zero, 1, 1, fo) ;
     }
     Res = fseek (fo, RAW_DATA_OFFSET * SECTOR_SIZE, SEEK_SET) ;
-    printf ("Move to %d\n", RAW_DATA_OFFSET * SECTOR_SIZE) ;
-    Res = fwrite (OutputFileImg, 1, FileTotalSize, fo) ;
+    printf ("- %d ", ftell (fo) ) ;
+
+    Res = fwrite (OutputFileImg, 1, UsedMemory, fo) ;
     if (Res != -1) {
       printf ("ok! - %d\n", ftell (fo) ) ;
     }
