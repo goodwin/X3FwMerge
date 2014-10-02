@@ -1,3 +1,8 @@
+/*
+  Code by Ryan lin
+  aires317@gmail.com
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
