@@ -1,6 +1,12 @@
 /*
   Code by Ryan lin
   aires317@gmail.com
+  
+  
+  2015/01/03 - 
+    Verify number calculate module code by ScaV
+  
+  
 */
 
 #include <stdio.h>
